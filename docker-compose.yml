@@ -1,0 +1,102 @@
+---
+version: "3.8"
+services:
+  postgres:
+    image: "postgres:12"
+    restart: "unless-stopped"
+    command: "postgres -c config_file=/etc/postgresql.conf"
+    environment:
+      POSTGRES_PASSWORD: "${PGPASSWORD:-postgres}"
+    volumes:
+      - "postgres-data-dir:/var/lib/postgresql/data"
+      - "./conf/postgresql.conf:/etc/postgresql.conf"
+
+  init-db:
+    image: "jupyter-beefed-up:latest"
+    depends_on:
+      - "postgres"
+    # Run the script successfully at most once.
+    restart: "on-failure"
+    command: "/init-db.sh"
+    secrets:
+      - "pgpassfile"
+    environment:
+      PGHOST: "postgres"
+      PGPORT: 5432
+      PGUSER: "postgres"
+      PGDATABASE: "postgres"
+      PGPASSFILE: "/run/secrets/pgpassfile"
+      # init-exercises tries to download the dumps only if DO_INIT_DB
+      # is true.
+      DO_INIT_DB: "${DO_INIT_DB:-true}"
+    volumes:
+      - "./scripts/init-db.sh:/init-db.sh"
+
+  init-exercises:
+    image: "jupyter-beefed-up:latest"
+    depends_on:
+      - "jupyter"
+    # Run the script successfully at most once.
+    restart: "on-failure"
+    command: "/init-exercises.sh"
+    secrets:
+      - "pgpassfile"
+    environment:
+      PGHOST: "postgres"
+      PGPORT: 5432
+      PGUSER: "postgres"
+      PGDATABASE: "postgres"
+      PGPASSFILE: "/run/secrets/pgpassfile"
+      # init-exercises tries to download the exercises only if DO_INIT_EXERCISES
+      # is true.
+      DO_INIT_EXERCISES: "${DO_INIT_EXERCISES:-true}"
+    volumes:
+      - "./scripts/init-exercises.sh:/init-exercises.sh"
+      - "./exercises:/exercises"
+
+  pgadmin:
+    image: "dpage/pgadmin4:4"
+    depends_on:
+      - "postgres"
+    ports:
+      - "5050:5050"
+    restart: "unless-stopped"
+    secrets:
+      - "pgpassfile"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL:-no@emai.lservice}"
+      PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:-test}"
+      PGADMIN_LISTEN_PORT: "5050"
+    volumes:
+      - "./conf/pgadmin4-servers.json:/pgadmin4/servers.json"
+
+  jupyter:
+    image: "jupyter-beefed-up:latest"
+    build:
+      context: "./docker"
+      dockerfile: "jupyter.Dockerfile"
+    depends_on:
+      - "postgres"
+    ports:
+      - "8080:8888"
+    restart: "unless-stopped"
+    secrets:
+      - "pgpassfile"
+    environment:
+      PGHOST: "postgres"
+      PGPORT: 5432
+      PGUSER: "${POSTGRES_USER:-postgres}"
+      PGDATABASE: "${POSTGRES_DB:-postgres}"
+      PGPASSFILE: "/run/secrets/pgpassfile"
+      JUPYTER_TOKEN: "${PGPASSWORD:-postgres}"
+      RESTARTABLE: "yes"
+      DATABASE_URL: "${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/postgres}"
+    volumes:
+      - "./exercises:/home/jovyan"
+
+secrets:
+  pgpassfile:
+    file: "./pgpassfile"
+
+volumes:
+  postgres-data-dir:

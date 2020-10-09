@@ -58,15 +58,14 @@ services:
     image: "dpage/pgadmin4:4.25"
     depends_on:
       - "postgres"
-    ports:
-      - "5050:5050"
     restart: "unless-stopped"
     secrets:
       - "pgpassfile"
     environment:
       PGADMIN_DEFAULT_EMAIL: "${PGADMIN_DEFAULT_EMAIL:-no@emai.lservice}"
       PGADMIN_DEFAULT_PASSWORD: "${PGADMIN_DEFAULT_PASSWORD:-test}"
-      PGADMIN_LISTEN_PORT: "5050"
+    expose:
+      - "80"
     volumes:
       - "./conf/pgadmin4-servers.json:/pgadmin4/servers.json"
 
@@ -77,8 +76,6 @@ services:
       dockerfile: "jupyter.Dockerfile"
     depends_on:
       - "postgres"
-    ports:
-      - "8080:8888"
     restart: "unless-stopped"
     secrets:
       - "pgpassfile"
@@ -93,6 +90,17 @@ services:
       DATABASE_URL: "${DATABASE_URL:-postgres://postgres:postgres@postgres:5432/postgres}"
     volumes:
       - "./exercises:/home/jovyan"
+
+  nginx:
+    build:
+      context: "./docker"
+      dockerfile: "nginx.Dockerfile"
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - "jupyter"
+    restart: "unless-stopped"
 
 secrets:
   pgpassfile:

@@ -55,7 +55,7 @@ services:
       - "./exercises:/exercises"
 
   pgadmin:
-    image: "dpage/pgadmin4:4"
+    image: "dpage/pgadmin4:4.25"
     depends_on:
       - "postgres"
     ports:

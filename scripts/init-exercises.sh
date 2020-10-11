@@ -3,8 +3,9 @@
 set -Eeuxo pipefail
 
 notebook_urls=(
-  'https://raw.githubusercontent.com/mistmap/postgresql-training-finnish-2020-10/main/notebooks/jsonb.ipynb'
   'https://raw.githubusercontent.com/mistmap/postgresql-training-finnish-2020-10/main/notebooks/ohjelmointitekniikoita.ipynb'
+  'https://raw.githubusercontent.com/mistmap/postgresql-training-finnish-2020-10/main/notebooks/suorituskyky.ipynb'
+  'https://raw.githubusercontent.com/mistmap/postgresql-training-finnish-2020-10/main/notebooks/jsonb.ipynb'
 )
 
 if [ "${DO_INIT_EXERCISES}" != 'true' ] ; then
